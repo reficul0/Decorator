@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -11,11 +11,16 @@ namespace ConsoleApp2
     ///  Кофе, чай, газировка
     /// Добавки:
     ///  шоколад, молоко
-    
+
     /// Кофе(1.5) + шоколад(0.3)
     /// Цена 1.8
     /// "Кофе, шоколад"
-
+    public enum SizesOfPortion 
+    {
+        small = 1,
+        medium,
+        big
+    }
     interface IBeverage
     {
         Queue<string> GetName();
@@ -26,14 +31,17 @@ namespace ConsoleApp2
     {
         protected string name;
         protected double cost;
+        public int size;
 
         protected BeverageBase(
             string name = "Unknown beverage",
-            double cost = 0
+            double cost = 0,
+            int size = 1
             )
         {
-            this.name = name;
+            this.name = name + " "+ Enum.Parse(typeof(SizesOfPortion),Enum.GetName(typeof(SizesOfPortion),size));
             this.cost = cost;
+            this.size = size;
         }
 
         public virtual Queue<string> GetName()
@@ -45,102 +53,104 @@ namespace ConsoleApp2
         }
         public virtual double GetCost()
         {
-            return cost;
+            return cost*size;
         }
     }
 
     class Coffe : BeverageBase
     {
         public Coffe(
-            double cost = 1.5
+            double cost = 1.5, int size = 1
             )
-            : base("Coffe", cost)
+            : base("Coffe", cost, size)
         {
         }
     }
     class Tea : BeverageBase
     {
         public Tea(
-            double cost = 1.0
+            double cost = 1.0, int size = 1
             )
-            : base("Tea", cost)
+            : base("Tea", cost, size)
         {
         }
     }
     class Soda : BeverageBase
     {
         public Soda(
-            double cost = 1.3
+            double cost = 1.3, int size = 1
             )
-            : base("Soda", cost)
+            : base("Soda", cost, size)
         {
         }
     }
 
-    class CondinmentDecorator
+    class CondimentDecorator
         : BeverageBase
     {
-        IBeverage b;
+        IBeverage beverage;
+    
 
-        protected CondinmentDecorator(
-            IBeverage b,
+        protected CondimentDecorator(
+            IBeverage beverage,
             string name = "Unknown condinment",
-            double cost = 0
+            double cost = 0,
+            int size = 1
             )
-            : base(name, cost)
+            : base(name, cost, size)
         {
-            this.b = b;
+            this.beverage = beverage;
         }
 
         public override Queue<string> GetName() 
         {
-            var q = b.GetName();
+            var que = beverage.GetName();
             var tmp = base.GetName();
 
             foreach(var str in tmp)
-                q.Enqueue(str);
+                que.Enqueue(str);
 
-            return q;
+            return que;
         }
         public override double GetCost()
         {
-            return b.GetCost() + base.GetCost();
+            return beverage.GetCost() + base.GetCost();
         }
     }
 
     class Milk
-        : CondinmentDecorator
+        : CondimentDecorator
     {
         public Milk(
-            IBeverage b,
-            double cost = 0.3
+            IBeverage beverage,
+            double cost = 0.3,
+            int size = 1
             )
-            : base(b, "Milk", cost)
+            : base(beverage, "Milk", cost, size)
         {
         }
     }
     class Chocolate
-        : CondinmentDecorator
+        : CondimentDecorator
     {
-        int size;
 
         public Chocolate(
-            IBeverage b,
-            double cost = 0.4
+            IBeverage beverage,
+            double cost = 0.4,
+            int size = 1
             )
-            : base(b, "Chocolate", cost)
+            : base(beverage, "Chocolate", cost, size)
         {
-
         }
     }
 
     abstract class OutputFormatDecorator
     {
-        protected IBeverage b;
+        protected IBeverage beverage;
 
-        protected OutputFormatDecorator(IBeverage b)
+        protected OutputFormatDecorator(IBeverage beverage)
         {
-            this.b = b;
+            this.beverage = beverage;
         }
 
         public abstract void Print();
@@ -152,25 +162,25 @@ namespace ConsoleApp2
     class DefaultOutputFormatDecorator
         : OutputFormatDecorator
     {
-        public DefaultOutputFormatDecorator(IBeverage b)
-            : base(b)
+        public DefaultOutputFormatDecorator(IBeverage beverage)
+            : base(beverage)
         {
 
         }
 
         public override void Print()
         {
-            var que = b.GetName();
+            var que = beverage.GetName();
 
-            string s = que.Dequeue();
+            string str = que.Dequeue();
             foreach(var name in que)
             {
-                s += ", "+ name;
+                str += ", "+ name;
             }
 
             Console.Write(
-                "Name: " + s +
-                " \nCost: " + b.GetCost() +
+                "Name: " + str +
+                " \nCost: " + beverage.GetCost() +
                 "\n"
                 );
         }
@@ -178,27 +188,31 @@ namespace ConsoleApp2
 
     class Program
     {
-        static void PrintBeverage(IBeverage b)
+        static void PrintBeverage(IBeverage beverage)
         {
             Console.Write(
-                "Name: " + b.GetName() + 
-                " \nCost: " + b.GetCost() + 
+                "Name: " + beverage.GetName() + 
+                " \nCost: " + beverage.GetCost() + 
                 "\n"
                 );
         }
         static void Main(string[] args)
         {
-            IBeverage b = new Coffe();
-            b = new Milk(b);
-            b = new Milk(b);
+            
+            int big = (int)SizesOfPortion.big;
+            int medium = (int)SizesOfPortion.medium;
+            int small = (int)SizesOfPortion.small;
 
-            b = new Chocolate(b);
+           
 
-            var formater = new DefaultOutputFormatDecorator(b);
+            IBeverage beverage = new Coffe(size:medium);
+            beverage = new Milk(beverage, size:big);
+            beverage = new Chocolate(beverage, size:small);
+
+            var formater = new DefaultOutputFormatDecorator(beverage);
 
             formater.Print();
-
-            //PrintBeverage(b);
+            Console.ReadLine();
         }
     }
 }
